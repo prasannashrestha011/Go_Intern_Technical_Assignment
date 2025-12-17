@@ -1,7 +1,10 @@
 package main
 
-import "main/cmd/user"
+import (
+	"main/cmd/auth"
+)
 
 func main() {
-	user.USER_CMD()
+	// user.USER_CMD()
+	auth.AUTH_CMD()
 }
