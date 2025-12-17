@@ -29,9 +29,9 @@ func USER_CMD() {
 	
 	r.Get("/users/{id}",userHandlers.GET_USER)
 	r.Get("/users",userHandlers.GET_ALL_USER)
-	r.Post("/users/create",userHandlers.POST)
-	r.Put("/users/update/{id}",userHandlers.PUT)
-	r.Delete("/users/{id}",userHandlers.DELETE)
+	r.Post("/users/create",userHandlers.REGISTER_USER)
+	r.Put("/users/update/{id}",userHandlers.UPDATE_USER)
+	r.Delete("/users/{id}",userHandlers.DELETE_USER)
 
 	port:=os.Getenv("PORT")
 
