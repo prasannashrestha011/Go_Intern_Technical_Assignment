@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -58,7 +59,36 @@ func (a *authHandler) Login(ctx *gin.Context) {
 }
 
 func (a *authHandler) Refresh(ctx *gin.Context) {
-	panic("unimplemented")
+	refreshToken,err:=ctx.Cookie("refresh_token")
+	if err!=nil{
+		ctx.JSON(http.StatusUnauthorized,gin.H{
+			"error":"Refresh token missing !!",
+		})
+		return
+	}
+	token,err:=utils.ValidateJWT(refreshToken)
+	if err!=nil{
+		ctx.JSON(http.StatusUnauthorized,gin.H{
+			"error":"Invalid refresh token, please login again",
+		})
+		return
+	}
+	userIDStr,err:=utils.GenerateUserIDFromToken(token)
+	if err!=nil{
+		ctx.JSON(http.StatusUnauthorized,gin.H{
+			"error":"Invalid refresh token, please login again",
+		})
+	}
+
+	newAccessToken,_,err:=utils.GenerateTokens(uuid.MustParse(userIDStr))
+	if err!=nil{
+		ctx.JSON(http.StatusInternalServerError,gin.H{
+			"error":"Failed to generate new access token",
+		})
+	}
+	ctx.JSON(http.StatusOK,gin.H{
+		"accessToken":"Bearer "+newAccessToken,
+	})
 }
 
 func (a *authHandler) Validate(ctx *gin.Context) {

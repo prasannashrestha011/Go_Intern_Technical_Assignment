@@ -40,6 +40,7 @@ func AUTH_CMD() {
 	r:=gin.Default()
 	auth:=r.Group("/auth")
 	auth.POST("/login",authHandler.Login)
+	auth.GET("/refresh",authHandler.Refresh)
 	auth.Use(middlewares.GinJWTMiddleware())
 	{
 		auth.GET("/profile",authHandler.Profile)
