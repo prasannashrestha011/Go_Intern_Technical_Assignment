@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"main/internal/models"
+	"main/internal/schema"
 	"main/internal/services"
 	"main/internal/utils"
 	"net/http"
@@ -33,7 +33,7 @@ func NewUserHandler(userService services.UserService) UserService {
 
 func (u *userHandler) GET_ALL_USER(w http.ResponseWriter, r *http.Request) {
 	ctx:=r.Context()
-	var users []*models.UserResponseDTO
+	var users []*schema.UserResponseDTO
 	users,err:=u.userService.GetUsers(ctx)
 	if err!=nil{
 		http.Error(w,"User list is empty",400)
@@ -82,7 +82,7 @@ func (u *userHandler) DELETE_USER(w http.ResponseWriter, r *http.Request) {
 func (u *userHandler) REGISTER_USER(w http.ResponseWriter, r *http.Request) {
 
 	ctx:=r.Context()
-	var new_user models.UserCreateDTO 
+	var new_user schema.UserCreateDTO 
 	if err:=json.NewDecoder(r.Body).Decode(&new_user);err!=nil{
 		http.Error(w, err.Error(), 400)
 		return
@@ -104,7 +104,7 @@ func (u *userHandler) REGISTER_USER(w http.ResponseWriter, r *http.Request) {
 func (u *userHandler) UPDATE_USER(w http.ResponseWriter, r *http.Request) {
 
 	ctx:=r.Context()
-	var userDetails models.UserUpdateDTO
+	var userDetails schema.UserUpdateDTO
 	id,err:=uuid.Parse(chi.URLParam(r,"id"))
 	if err != nil{
 		http.Error(w,"Invalid user id",400)
