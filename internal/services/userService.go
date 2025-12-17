@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"log"
 	"main/internal/models"
 	"main/internal/repository"
@@ -10,20 +11,20 @@ import (
 )
 
 type UserService interface {
-	RegisterUser(user *models.UserCreateDTO) (*models.UserResponseDTO, error)
-	GetUserByID(id uuid.UUID) (*models.UserResponseDTO, error)
-	GetUsers() ([]*models.UserResponseDTO, error)
-	GetUserByEmail(email string) (*models.UserResponseDTO, error)
-	UpdateUser(id uuid.UUID, user *models.UserUpdateDTO) (*models.UserResponseDTO, error)
-	DeleteUser(id uuid.UUID) error
+	RegisterUser(ctx context.Context,user *models.UserCreateDTO) (*models.UserResponseDTO, error)
+	GetUserByID(ctx context.Context,id uuid.UUID) (*models.UserResponseDTO, error)
+	GetUsers(ctx context.Context) ([]*models.UserResponseDTO, error)
+	GetUserByEmail(ctx context.Context,email string) (*models.UserResponseDTO, error)
+	UpdateUser(ctx context.Context,id uuid.UUID, user *models.UserUpdateDTO) (*models.UserResponseDTO, error)
+	DeleteUser(ctx context.Context,id uuid.UUID) error
 }
 
 type userService struct {
 	repo repository.UserRepository
 }
 
-func (u *userService) GetUsers() ([]*models.UserResponseDTO, error) {
-	users,err:=u.repo.GetAll()
+func (u *userService) GetUsers(ctx context.Context) ([]*models.UserResponseDTO, error) {
+	users,err:=u.repo.GetAll(ctx)
 	if err!=nil{
 		return nil,err
 	}
@@ -46,7 +47,7 @@ func NewUserService(repo repository.UserRepository) UserService {
 	return &userService{repo: repo}
 }
 
-func (u *userService) RegisterUser(dto *models.UserCreateDTO) (*models.UserResponseDTO, error) {
+func (u *userService) RegisterUser(ctx context.Context,dto *models.UserCreateDTO) (*models.UserResponseDTO, error) {
 	
 	hashedPwd,err:=utils.HashPassoword(dto.Password)
 	if err!=nil{
@@ -57,7 +58,7 @@ func (u *userService) RegisterUser(dto *models.UserCreateDTO) (*models.UserRespo
 		Email:    dto.Email,
 		Password:hashedPwd,
 	}
-	err = u.repo.Create(user)
+	err = u.repo.Create(ctx,user)
 	if err != nil {
 		return nil, err
 	}
@@ -65,13 +66,13 @@ func (u *userService) RegisterUser(dto *models.UserCreateDTO) (*models.UserRespo
 	return userDTO, nil
 }
 
-func (u *userService) DeleteUser(id uuid.UUID) error {
-	return u.repo.Delete(id)
+func (u *userService) DeleteUser(ctx context.Context,id uuid.UUID) error {
+	return u.repo.Delete(ctx,id)
 }
 
-func (u *userService) UpdateUser(id uuid.UUID, dto *models.UserUpdateDTO) (*models.UserResponseDTO, error) {
+func (u *userService) UpdateUser(ctx context.Context,id uuid.UUID, dto *models.UserUpdateDTO) (*models.UserResponseDTO, error) {
 
-	user, err := u.repo.GetByID(id)
+	user, err := u.repo.GetByID(ctx,id)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +88,7 @@ func (u *userService) UpdateUser(id uuid.UUID, dto *models.UserUpdateDTO) (*mode
 		user.Password = dto.Password
 	}
 
-	updated_user, err := u.repo.Update(user)
+	updated_user, err := u.repo.Update(ctx,user)
 	if err != nil {
 		return nil, err
 	}
@@ -95,8 +96,8 @@ func (u *userService) UpdateUser(id uuid.UUID, dto *models.UserUpdateDTO) (*mode
 	return userDTO, nil
 }
 
-func (u *userService) GetUserByEmail(email string) (*models.UserResponseDTO, error) {
-	user, err := u.repo.GetByEmail(email)
+func (u *userService) GetUserByEmail(ctx context.Context, email string) (*models.UserResponseDTO, error) {
+	user, err := u.repo.GetByEmail(ctx,email)
 	if err != nil {
 		return nil, err
 	}
@@ -104,8 +105,8 @@ func (u *userService) GetUserByEmail(email string) (*models.UserResponseDTO, err
 	return userDTO, nil
 }
 
-func (u *userService) GetUserByID(id uuid.UUID) (*models.UserResponseDTO, error) {
-	user, err := u.repo.GetByID(id)
+func (u *userService) GetUserByID(ctx context.Context,id uuid.UUID) (*models.UserResponseDTO, error) {
+	user, err := u.repo.GetByID(ctx,id)
 	if err != nil {
 		return nil, err
 	}
