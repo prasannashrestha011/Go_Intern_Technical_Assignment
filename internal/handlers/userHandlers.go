@@ -14,9 +14,9 @@ import (
 type UserService interface {
 	GET_USER(w http.ResponseWriter, r *http.Request)
 	GET_ALL_USER(w http.ResponseWriter, r *http.Request)
-	POST(w http.ResponseWriter, r *http.Request)
-	PUT(w http.ResponseWriter, r *http.Request)
-	DELETE(w http.ResponseWriter, r *http.Request)
+	REGISTER_USER(w http.ResponseWriter, r *http.Request)
+	UPDATE_USER(w http.ResponseWriter, r *http.Request)
+	DELETE_USER(w http.ResponseWriter, r *http.Request)
 }
 type userHandler struct {
 	userService services.UserService
@@ -32,8 +32,9 @@ func NewUserHandler(userService services.UserService) UserService {
 //handlers
 
 func (u *userHandler) GET_ALL_USER(w http.ResponseWriter, r *http.Request) {
+	ctx:=r.Context()
 	var users []*models.UserResponseDTO
-	users,err:=u.userService.GetUsers()
+	users,err:=u.userService.GetUsers(ctx)
 	if err!=nil{
 		http.Error(w,"User list is empty",400)
 		return 
@@ -43,8 +44,9 @@ func (u *userHandler) GET_ALL_USER(w http.ResponseWriter, r *http.Request) {
 }
 
 func (u *userHandler) GET_USER(w http.ResponseWriter, r *http.Request) {
+	ctx:=r.Context()
 	id:=chi.URLParam(r,"id")
-	user,err:=u.userService.GetUserByID(uuid.MustParse(id))
+	user,err:=u.userService.GetUserByID(ctx,uuid.MustParse(id))
 	if err!=nil{
 		http.Error(w,err.Error(),404)
 		return 
@@ -56,9 +58,10 @@ func (u *userHandler) GET_USER(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (u *userHandler) DELETE(w http.ResponseWriter, r *http.Request) {
+func (u *userHandler) DELETE_USER(w http.ResponseWriter, r *http.Request) {
+	ctx:=r.Context()
 	id:=chi.URLParam(r,"id")
-	err:=u.userService.DeleteUser(uuid.MustParse(id))
+	err:=u.userService.DeleteUser(ctx,uuid.MustParse(id))
 	if err!=nil{
 		err:=&utils.CustomError{
 			Message: "User not found",
@@ -76,13 +79,15 @@ func (u *userHandler) DELETE(w http.ResponseWriter, r *http.Request) {
 }
 
 
-func (u *userHandler) POST(w http.ResponseWriter, r *http.Request) {
+func (u *userHandler) REGISTER_USER(w http.ResponseWriter, r *http.Request) {
+
+	ctx:=r.Context()
 	var new_user models.UserCreateDTO 
 	if err:=json.NewDecoder(r.Body).Decode(&new_user);err!=nil{
 		http.Error(w, err.Error(), 400)
 		return
 	}
-	user_details,err:=u.userService.RegisterUser(&new_user)
+	user_details,err:=u.userService.RegisterUser(ctx,&new_user)
 	if err!=nil{
 		err:=&utils.CustomError{
 			Message:"Email address  exists already",
@@ -96,7 +101,9 @@ func (u *userHandler) POST(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(&user_details)
 }
 
-func (u *userHandler) PUT(w http.ResponseWriter, r *http.Request) {
+func (u *userHandler) UPDATE_USER(w http.ResponseWriter, r *http.Request) {
+
+	ctx:=r.Context()
 	var userDetails models.UserUpdateDTO
 	id,err:=uuid.Parse(chi.URLParam(r,"id"))
 	if err != nil{
@@ -107,7 +114,7 @@ func (u *userHandler) PUT(w http.ResponseWriter, r *http.Request) {
 		http.Error(w,"Invalid user details",400)
 		return
 	}
-	 updated_details,err:=u.userService.UpdateUser(id,&userDetails);
+	 updated_details,err:=u.userService.UpdateUser(ctx,id,&userDetails);
 	 if err!=nil{
 		http.Error(w,"User Update error: "+err.Error(),500)
 		return
