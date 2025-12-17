@@ -63,9 +63,10 @@ func (u *userHandler) DELETE_USER(w http.ResponseWriter, r *http.Request) {
 	id:=chi.URLParam(r,"id")
 	err:=u.userService.DeleteUser(ctx,uuid.MustParse(id))
 	if err!=nil{
-		err:=&utils.CustomError{
+		err:=&utils.AppError{
+			Code: 404,
 			Message: "User not found",
-			Status: false,
+			Err: err,
 		}
 		http.Error(w,err.Error(),404)
 		return
@@ -89,9 +90,10 @@ func (u *userHandler) REGISTER_USER(w http.ResponseWriter, r *http.Request) {
 	}
 	user_details,err:=u.userService.RegisterUser(ctx,&new_user)
 	if err!=nil{
-		err:=&utils.CustomError{
+		err:=&utils.AppError{
+			Code: 404,
 			Message:"Email address  exists already",
-			Status: false,
+			Err: err,
 		}
 		http.Error(w,err.Error(),500)
 		return
