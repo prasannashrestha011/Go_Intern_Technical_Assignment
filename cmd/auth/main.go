@@ -1,36 +1,33 @@
-package auth
+package main
 
 import (
-	"log"
+	"main/internal/config"
 	"main/internal/database"
 	"main/internal/handlers"
 	"main/internal/logger"
-	"main/internal/middlewares"
 	ginmiddlewares "main/internal/middlewares/gin_middlewares"
 	"main/internal/repository"
 	"main/internal/services"
-	"os"
+	"main/internal/utils"
 
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 )
 
-func AUTH_CMD() {
-	err := godotenv.Load()
-	if err!=nil{
-		log.Println("Failed to laod the env: ",err.Error())
-	}
+func main() {
 
-	isDev:=os.Getenv("ENV")
+
+	config.Load()
+	isDev:=config.AppCfgs.Server.Env
+	dsn:=config.AppCfgs.Database.Url
+
 	logger.InitLogger(isDev=="DEV")
-
-	dsn:=os.Getenv("DB_URL")
-	err=database.Connect(dsn)
+	err:=database.Connect(dsn)
 	if err!=nil{
 		logger.Log.Error("Database connection error: ",zap.Error(err))
 	}
 
+	utils.InitJWT()
 	//initializing user repository
 
 	userRepo:=repository.NewRepository(database.DB)
@@ -45,13 +42,13 @@ func AUTH_CMD() {
 	auth.POST("/refresh",authHandler.Refresh)
 
 	//protected routes
-	auth.Use(middlewares.GinJWTMiddleware())
+	auth.Use(ginmiddlewares.GinJWTMiddleware())
 	{
 		auth.GET("/profile",authHandler.Profile)
 		auth.GET("/validate",authHandler.Validate)
 	}
 
-	port:=os.Getenv("PORT")
+	port:=config.AppCfgs.Server.Port.Auth
 
 	r.Run(":"+port)
 

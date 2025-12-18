@@ -1,25 +1,27 @@
-package user
+package main
 
 import (
 	"log"
+	"main/internal/config"
 	"main/internal/database"
 	"main/internal/handlers"
+	"main/internal/logger"
+	chimiddlewares "main/internal/middlewares/chi_middlewares"
 	"main/internal/repository"
 	"main/internal/services"
+	"main/internal/utils"
 	"net/http"
-	"os"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/joho/godotenv"
 )
 
-func USER_CMD() {
-	err:=godotenv.Load()
-	if err!=nil{
-		log.Println("ENV error: ",err.Error())
-	}
+func main() {
+	config.Load()
+	isDev:=config.AppCfgs.Server.Env
+	dsn:=config.AppCfgs.Database.Url
+	logger.InitLogger(isDev=="DEV")
 
-	dsn:=os.Getenv("DB_URL")
+	utils.InitJWT()
 	database.Connect(dsn)
 	r := chi.NewRouter()
 
@@ -27,13 +29,18 @@ func USER_CMD() {
 	service:=services.NewUserService(repo)
 	userHandlers:=handlers.NewUserHandler(service)
 	
-	r.Get("/users/{id}",userHandlers.GET_USER)
-	r.Get("/users",userHandlers.GET_ALL_USER)
-	r.Post("/users/create",userHandlers.REGISTER_USER)
-	r.Put("/users/update/{id}",userHandlers.UPDATE_USER)
-	r.Delete("/users/{id}",userHandlers.DELETE_USER)
+	r.Use(chimiddlewares.LoggerMiddleware)
+	r.Route("/users",func(r chi.Router) {
+		r.Use(chimiddlewares.JWTAuthMiddleware)
+		r.Get("/",userHandlers.GET_ALL_USER)
+		r.Get("/{id}",userHandlers.GET_ALL_USER)
+		r.Post("/create",userHandlers.REGISTER_USER)
+		r.Put("/update/{id}",userHandlers.UPDATE_USER)
+		r.Delete("/{id}",userHandlers.DELETE_USER)
+	})
+	
 
-	port:=os.Getenv("PORT")
+	port:=config.AppCfgs.Server.Port.User
 
 	log.Println("SERVER listening on PORT: "+port)
 	http.ListenAndServe(":"+port,r)
