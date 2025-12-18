@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"main/internal/config"
 	"main/internal/logger"
 	"time"
 
@@ -9,12 +10,23 @@ import (
 	"go.uber.org/zap"
 )
 
-var jwtSecret = []byte("Secret_Key")
+var jwtSecret []byte
+var accessExpTime time.Duration
+var refreshExpTime time.Duration
+
+
+func InitJWT(){
+
+ jwtSecret = []byte(config.AppCfgs.Jwt.Secret)
+ accessExpTime=config.AppCfgs.Jwt.AccessExpiry
+ refreshExpTime=config.AppCfgs.Jwt.RefreshExpiry
+
+}
 
 func GenerateTokens(userID uuid.UUID)(accessToken string,refreshToken string,err error){
 	atClaims:=jwt.MapClaims{
 		"sub":userID.String(),
-		"exp":time.Now().Add(15 * time.Minute).Unix(),
+		"exp":time.Now().Add(accessExpTime).Unix(),
 		"iat":time.Now().Unix(),
 	}
 
@@ -27,7 +39,7 @@ func GenerateTokens(userID uuid.UUID)(accessToken string,refreshToken string,err
 
 	rtClaims:=jwt.MapClaims{
 		"sub":userID.String(),
-		"exp":time.Now().Add(7*24*time.Hour).Unix(),
+		"exp":time.Now().Add(refreshExpTime).Unix(),
 		"iat":time.Now().Unix(),
 	}
 	rt:=jwt.NewWithClaims(jwt.SigningMethodHS256,rtClaims)

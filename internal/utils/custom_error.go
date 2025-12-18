@@ -25,4 +25,9 @@ func New(code int,message string,err error) *AppError{
 var (
 	ErrBadRequest=New(400,"Invalid request body",nil)
 	ErrUnAuthorized=New(401,"Request unauthorized",nil)
+	ErrInvalidCredentials=New(401,"Invalid credentials",nil)
+	ErrTokenGenFailure=New(500,"Failed to generate authentication token",nil)
+	ErrTokenInvalid=New(401,"Invalid authentication token",nil)
+	ErrTokenMissing=New(400,"Authentication token missing!!",nil)
+	ErrInternalServerError=New(500,"Internal server error",nil)
 )
