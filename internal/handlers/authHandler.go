@@ -29,7 +29,17 @@ func NewAuthHandler(authService services.AuthService) AuthHandler {
 	return &authHandler{authService: authService}
 }
 
-
+// Login godoc
+//@Summary Login function for the app
+//@Description The request body will contain fields (email and password) as credentials. The given credentials will be used to authenticate user. If authentication is successful, access and refresh token(jwt) will be issued to the user with claims(userID).
+//@Tags auth
+//@Accept json
+//@Produce json
+//@Param userCreds body schema.UserLoginDTO true "User credentials"
+//@Success 200 {object} map[string]string "Login successful"
+//@Error 400 {object} map[string]string "Bad request"
+//@Error 401 {object} map[string]string "Invalid credentials"
+//@Router /auth/login [post]
 func (a *authHandler) Login(ctx *gin.Context) {
 	var userCreds *schema.UserLoginDTO
 
@@ -61,7 +71,16 @@ func (a *authHandler) Login(ctx *gin.Context) {
 		"message":"login successful",
 	})
 }
-
+// Refresh Auth Token godoc
+//@Summary Refresh access token through refresh token
+//@Description This handler is resposible for refreshing the session state of access token. The access token persist for 15m after its issue. Once the token is expired, refresh token which is issued during login action, is used in order to revise the session state of access token.
+//Tags auth
+//@Accept json
+//@Produce json
+//Param refresh_token cookie string true "Refresh token cookie"
+//@Success 200 {object} map[string]string "New access token"
+//@Failure 401 {object} map[string]string "Invalid refresh token"
+//@Router /auth/refresh [post]
 func (a *authHandler) Refresh(ctx *gin.Context) {
 	refreshToken,err:=ctx.Cookie("refresh_token")
 	if err!=nil{
@@ -87,7 +106,15 @@ func (a *authHandler) Refresh(ctx *gin.Context) {
 		"accessToken":"Bearer "+newAccessToken,
 	})
 }
-
+//Access Token Validation godoc
+//@Summary Checks if current access token is valid.
+//@Descrition This handlers validate wheather current session is active or expired. The handler is protected with JWT middleware. So, middleware will set userID in request context only if given access token is valid.
+//@Accept json
+//@Product json
+//@Security ApiKeyAuth
+//@Success 200 {object} map[string]string "Token is valid"
+//@Failure 401 {object} map[string]string "Invalid or missing token"
+//@Router /auth/validate [get]
 func (a *authHandler) Validate(ctx *gin.Context) {
 	userID,exists:=ctx.Get("userID")
 	if !exists{
