@@ -34,30 +34,23 @@ func (a *authHandler) Login(ctx *gin.Context) {
 	var userCreds *schema.UserLoginDTO
 
 	if err:=ctx.BindJSON(&userCreds);err!=nil{
-		logger.Log.Error("Request Body error: ",zap.Error(err))
-		ctx.JSON(http.StatusBadRequest,gin.H{
-			"error":"Invalid request body",
-		})
+		_=ctx.Error(utils.ErrBadRequest)
 		return
 	}
+
 	logger.Log.Info("Login Attempted",zap.String("Email",userCreds.Email),zap.Time("logged_at",time.Now()))
 	authData,err:=a.authService.Login(ctx,userCreds)
+
 	if err!=nil{
 		logger.Log.Info("Login Failed: ",zap.String("Email",userCreds.Email))
-		_=ctx.Error(utils.ErrUnAuthorized)
+		_=ctx.Error(utils.ErrInvalidCredentials)
 		return
+
 	}
+
 	accessToken,refreshToken,err:=utils.GenerateTokens(authData.ID)
 	if err!=nil{
-		ctx.JSON(http.StatusUnauthorized,gin.H{
-			"error":"",
-		})
-		appErr:=utils.AppError{
-			Message:"Failed to generate authentication token, please try again" ,
-			Code: 401,
-			Err: nil,
-		}
-		_=ctx.Error(&appErr)
+		_=ctx.Error(utils.ErrTokenInvalid)
 		return
 	}
 
@@ -72,33 +65,22 @@ func (a *authHandler) Login(ctx *gin.Context) {
 func (a *authHandler) Refresh(ctx *gin.Context) {
 	refreshToken,err:=ctx.Cookie("refresh_token")
 	if err!=nil{
-		ctx.JSON(http.StatusUnauthorized,gin.H{
-			"error":"Refresh token missing !!",
-		})
+		_=ctx.Error(utils.ErrTokenMissing)
 		return
 	}
 	token,err:=utils.ValidateJWT(refreshToken)
 	if err!=nil{
-		appErr:=utils.AppError{
-			Message:"Invalid refresh token, please login again" ,
-			Code: 404,
-			Err: err,
-		}
-		_=ctx.Error(&appErr)
+		_=ctx.Error(utils.ErrTokenInvalid)
 		return
 	}
 	userIDStr,err:=utils.GenerateUserIDFromToken(token)
 	if err!=nil{
-		ctx.JSON(http.StatusUnauthorized,gin.H{
-			"error":"Invalid refresh token, please login again",
-		})
+		_=ctx.Error(utils.ErrTokenInvalid)
 	}
 
 	newAccessToken,_,err:=utils.GenerateTokens(uuid.MustParse(userIDStr))
 	if err!=nil{
-		ctx.JSON(http.StatusInternalServerError,gin.H{
-			"error":"Failed to generate new access token",
-		})
+		_=ctx.Error(utils.ErrTokenGenFailure)
 	}
 	logger.Log.Info("Refresh token generated: ",zap.String("userID",userIDStr),zap.Time("time",time.Now()))
 	ctx.JSON(http.StatusOK,gin.H{
@@ -109,9 +91,7 @@ func (a *authHandler) Refresh(ctx *gin.Context) {
 func (a *authHandler) Validate(ctx *gin.Context) {
 	userID,exists:=ctx.Get("userID")
 	if !exists{
-		ctx.JSON(http.StatusUnauthorized,gin.H{
-			"error":"Invalid userID or token is missing",
-		})
+		_=ctx.Error(utils.ErrTokenMissing)
 		return
 	}
 	logger.Log.Info("Attempted Token validation: ",zap.String("userID",userID.(string)),zap.Time("time",time.Now()))
