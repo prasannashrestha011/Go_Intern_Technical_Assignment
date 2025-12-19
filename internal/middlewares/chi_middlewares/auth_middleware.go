@@ -9,28 +9,31 @@ import (
 
 	"go.uber.org/zap"
 )
-type contextKey string
-const userKEY=contextKey("userID")
+type userContextKey string
+const userKEY=userContextKey("userID")
 
 func JWTAuthMiddleware(next http.Handler)http.Handler{
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader:=r.Header.Get("Authorization")
 		parts:=strings.Split(authHeader, "Bearer ")
 		if len(parts)!=2 || strings.TrimSpace(parts[1])==""{
-			http.Error(w,"Request Unauthorized, please login to your session",http.StatusUnauthorized)
+			appErr:=utils.NewAppError(http.StatusUnauthorized,"REQ_UNAUTHORIZED","Access token missing!!, unable to process the request",nil)
+			SetError(w,appErr)
 			return
 		} 
 		tokenStr:=parts[1]
 		token,err:=utils.ValidateJWT(tokenStr)
 		if err!=nil{
 			logger.Log.Info("JWT validation error",zap.Error(err))
-			http.Error(w,"Session expired, refresh your access token",http.StatusUnauthorized)
+			appErr:=utils.NewAppError(http.StatusUnauthorized,"REQ_UNAUTHORIZED","Session expired, please refresh your access token",nil)
+			SetError(w,appErr)
 			return
 		}
 		userID,err:=utils.GenerateUserIDFromToken(token)
 		if err!=nil{
 			logger.Log.Info("JWT ID extraction error",zap.Error(err))
-			http.Error(w,"Invalid authentication token, please login again!!",http.StatusUnauthorized)
+			appErr:=utils.NewAppError(http.StatusUnauthorized,"REQ_UNAUTHORIZED","Invalid access token, failed to retrieve user id from claims",nil)
+			SetError(w,appErr)
 			return
 		}
 		ctx:=context.WithValue(r.Context(),userKEY,userID)

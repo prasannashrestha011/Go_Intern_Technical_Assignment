@@ -2,6 +2,7 @@ package ginmiddlewares
 
 import (
 	"main/internal/logger"
+	"main/internal/schema"
 	"main/internal/utils"
 	"net/http"
 	"strings"
@@ -16,9 +17,7 @@ func GinJWTMiddleware() gin.HandlerFunc{
 		parts:=strings.Split(authHeader, "Bearer ")
 
 		if len(parts)!=2 || strings.TrimSpace(parts[1])==""{
-			ctx.JSON(http.StatusForbidden,gin.H{
-				"error":"Authorization token not provided",
-			})
+			ctx.JSON(http.StatusUnauthorized,schema.ErrorResponse("BAD_REQUEST","Invalid access token","Either the authorization token is invalid or missing from authorization header."))
 			ctx.Abort()
 			return
 		}
@@ -26,17 +25,13 @@ func GinJWTMiddleware() gin.HandlerFunc{
 		token,err:=utils.ValidateJWT(tokenStr)
 		if err!=nil{
 			logger.Log.Error("Token expiration error: ",zap.Error(err))
-			ctx.JSON(http.StatusForbidden,gin.H{
-				"error":"Token expired",
-			})
+			ctx.JSON(http.StatusUnauthorized,schema.ErrorResponse("BAD_REQUEST","Access token expired, use refresh token to revise the session life.",""))
 			ctx.Abort()
 			return
 		}
 		userID,err:=utils.GenerateUserIDFromToken(token)
 		if err!=nil{
-			ctx.JSON(http.StatusForbidden,gin.H{
-				"error":"Invalid access token",
-			})
+			ctx.JSON(http.StatusUnauthorized,schema.ErrorResponse("TOKEN_GEN_FAILURE","Invalid access token, Unable to extract userID from the claims",""))
 			ctx.Abort()
 			return
 		}
