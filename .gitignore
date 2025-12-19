@@ -2,3 +2,7 @@
 /tmp
 
 /internal/config/config.yml
+
+/cmd/auth/tmp
+/cmd/order/tmp
+/cmd/user/tmp
