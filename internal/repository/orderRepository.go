@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"main/internal/models"
 
 	"github.com/google/uuid"
@@ -45,6 +46,9 @@ func (o *orderRepository) GetUserOrders(ctx context.Context, userID uuid.UUID) (
 	if err != nil {
 		return nil, err
 	}
+    if len(user_orders) == 0 {
+        return nil, fmt.Errorf("no orders found for user %s", userID)
+    }
 	return user_orders, nil
 }
 

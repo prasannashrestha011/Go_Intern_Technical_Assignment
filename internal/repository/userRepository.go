@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"main/internal/models"
 
 	"github.com/google/uuid"
@@ -31,7 +32,15 @@ func (r *userRepo) Create(ctx context.Context,user *models.User) error {
 }
 
 func (r *userRepo) Delete(ctx context.Context,id uuid.UUID) error {
-	return r.db.WithContext(ctx).Delete(&models.User{}, id).Error
+	result:= r.db.WithContext(ctx).Delete(&models.User{},"id= ?", id)
+	if result.Error !=nil{
+		return result.Error
+	}
+	if result.RowsAffected==0{
+		return errors.New("User details not found") 
+	}
+	return nil
+
 }
 
 // pagination will be implemented in the future
