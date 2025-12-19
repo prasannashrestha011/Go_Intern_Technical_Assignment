@@ -1,33 +1,42 @@
 package utils
 
-//custom error type
-// status->true(success)
-// status->false(failed)
 type AppError struct {
-	Message string
-	Err error
-	Code int
+	Code       string //client facing error status
+	Message    string
+	Details    string //additional details about the error
+	StatusCode int
+	Err        error
 }
 
-func (e *AppError) Error() string{
-	return e.Message
+func (e *AppError) Error() string {
+	if e.Err != nil {
+		return e.Details + ": " + e.Err.Error()
+	}
+	return e.Details
 }
 
-func New(code int,message string,err error) *AppError{
-
+func NewAppError(statusCode int, code, message string, err error) *AppError {
 	return &AppError{
-		Message: message,
-		Code: code,
-		Err:err,
-		}
+		Code:       code,
+		Message:    message,
+		StatusCode: statusCode,
+		Err:        err,
+	}
 }
 
 var (
-	ErrBadRequest=New(400,"Invalid request body",nil)
-	ErrUnAuthorized=New(401,"Request unauthorized",nil)
-	ErrInvalidCredentials=New(401,"Invalid credentials",nil)
-	ErrTokenGenFailure=New(500,"Failed to generate authentication token",nil)
-	ErrTokenInvalid=New(401,"Invalid authentication token",nil)
-	ErrTokenMissing=New(400,"Authentication token missing!!",nil)
-	ErrInternalServerError=New(500,"Internal server error",nil)
+	ErrBadRequest         = NewAppError(400, "BAD_REQUEST", "Invalid request body", nil)
+	ErrUnauthorized       = NewAppError(401, "UNAUTHORIZED", "Request unauthorized", nil)
+	ErrInvalidCredentials = NewAppError(401, "INVALID_CREDENTIALS", "Invalid credentials", nil)
+	ErrTokenGenFailure    = NewAppError(500, "TOKEN_GEN_FAILED", "Failed to generate authentication token", nil)
+	ErrTokenInvalid       = NewAppError(401, "INVALID_TOKEN", "Invalid authentication token", nil)
+	ErrTokenMissing       = NewAppError(400, "TOKEN_MISSING", "Authentication token missing", nil)
+	ErrInternalServer     = NewAppError(500, "INTERNAL_ERROR", "Internal server error", nil)
+	ErrNotFound           = NewAppError(500, "ENTITY_NOT_FOUND", "Requested entity not found", nil)
 )
+
+func (e *AppError) WithDetails(details string) *AppError {
+	newErr := *e
+	newErr.Details = details
+	return &newErr
+}
