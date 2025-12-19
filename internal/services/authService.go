@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"errors"
 	"main/internal/logger"
 	"main/internal/repository"
 	"main/internal/schema"
@@ -37,11 +36,7 @@ func (a *authService) Login(ctx context.Context, creds *schema.UserLoginDTO) (*s
 	isMatches:=utils.ComparePassword(userDetails.Password,creds.Password)
 
 	if !isMatches{
-		err:=&utils.AppError{
-			Message: "Invalid Credentials",
-			Err: errors.New("invalid credentials"),
-			Code:401,
-		}
+		err:=utils.NewAppError(401,"INVALID_CREDENTIALS","Invalid username or password",nil)
 		return nil,err
 	}
 
