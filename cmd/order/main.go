@@ -1,5 +1,25 @@
 package main
 
+// @title Orders API
+// @version 1.0
+// @description This API manages orders.
+// @termsOfService http://example.com/terms/
+// @BasePath /api/v1
+// @schemes http
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
+
+// @contact.name API Support
+// @contact.url http://www.example.com/support
+// @contact.email support@example.com
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8082
+// @BasePath /api/v1
 import (
 	"main/internal/config"
 	"main/internal/database"

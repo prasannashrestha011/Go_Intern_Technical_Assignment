@@ -1,0 +1,114 @@
+basePath: /api/v1
+definitions:
+  schema.ErrorDetail:
+    properties:
+      code:
+        type: string
+      details:
+        type: string
+      message:
+        type: string
+    type: object
+  schema.Response:
+    properties:
+      data: {}
+      error:
+        $ref: '#/definitions/schema.ErrorDetail'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  schema.UserLoginDTO:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+    url: http://www.example.com/support
+  description: This API manages orders.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://example.com/terms/
+  title: Auth API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: The request body will contain fields (email and password) as credentials.
+        The given credentials will be used to authenticate user. If authentication
+        is successful, access and refresh token(jwt) will be issued to the user with
+        claims(userID).
+      parameters:
+      - description: User credentials
+        in: body
+        name: userCreds
+        required: true
+        schema:
+          $ref: '#/definitions/schema.UserLoginDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful
+          schema:
+            $ref: '#/definitions/schema.Response'
+      summary: Login function for the app
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: This handler is resposible for refreshing the session state of
+        access token. The access token persist for 15m after its issue. Once the token
+        is expired, refresh token which is issued during login action, is used in
+        order to revise the session state of access token.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: New access token
+          schema:
+            $ref: '#/definitions/schema.Response'
+        "401":
+          description: Invalid refresh token
+          schema:
+            $ref: '#/definitions/schema.Response'
+      summary: Refresh access token through refresh token
+  /auth/validate:
+    get:
+      consumes:
+      - application/json
+      responses:
+        "200":
+          description: Token is valid
+          schema:
+            $ref: '#/definitions/schema.Response'
+        "401":
+          description: Invalid or missing token
+          schema:
+            $ref: '#/definitions/schema.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: Checks if current access token is valid.
+schemes:
+- http
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

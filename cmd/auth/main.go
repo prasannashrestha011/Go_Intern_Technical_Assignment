@@ -1,6 +1,6 @@
 package main
 
-// @title Orders API
+// @title Auth API
 // @version 1.0
 // @description This API manages orders.
 // @termsOfService http://example.com/terms/
@@ -34,7 +34,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	_ "main/docs"
+	_ "main/cmd/auth/docs"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
