@@ -8,7 +8,7 @@ import (
 
 var AppCfgs *AppConfigs
 func Load() {
-	viper.SetConfigFile("./internal/config/config.yml")
+	viper.SetConfigFile("../../internal/config/config.yml")
 	if err:=viper.ReadInConfig();err!=nil{
 		log.Println("Viper config load error: ",err.Error())
 		return
