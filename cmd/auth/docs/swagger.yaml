@@ -1,5 +1,20 @@
-basePath: /api/v1
 definitions:
+  schema.CreateOrder:
+    properties:
+      orderName:
+        type: string
+      price:
+        type: number
+      quantity:
+        type: integer
+      userID:
+        type: string
+    required:
+    - orderName
+    - price
+    - quantity
+    - userID
+    type: object
   schema.ErrorDetail:
     properties:
       code:
@@ -19,6 +34,20 @@ definitions:
       success:
         type: boolean
     type: object
+  schema.UserCreateDTO:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
   schema.UserLoginDTO:
     properties:
       email:
@@ -27,6 +56,19 @@ definitions:
         type: string
     required:
     - email
+    - password
+    type: object
+  schema.UserUpdateDTO:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - name
     - password
     type: object
 host: localhost:8080
@@ -104,6 +146,237 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Checks if current access token is valid.
+  /orders:
+    get:
+      description: Returns a list of all orders in the system
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schema.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schema.Response'
+      summary: List all orders
+      tags:
+      - orders
+    post:
+      consumes:
+      - application/json
+      description: Creates a new order for a user with the provided order data
+      parameters:
+      - description: Order payload
+        in: body
+        name: order
+        required: true
+        schema:
+          $ref: '#/definitions/schema.CreateOrder'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/schema.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schema.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schema.Response'
+      summary: Create a new order
+      tags:
+      - orders
+  /orders/{id}:
+    get:
+      description: Returns details of a specific order by its ID
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schema.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schema.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schema.Response'
+      summary: Get order by ID
+      tags:
+      - orders
+  /users:
+    get:
+      description: Returns a list of all users from the database
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schema.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schema.Response'
+      summary: List all users
+      tags:
+      - users
+  /users/{id}:
+    delete:
+      description: Deletes a user by their user ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schema.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schema.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schema.Response'
+      summary: Delete a user
+      tags:
+      - users
+    get:
+      description: Returns user details for a specific user ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schema.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schema.Response'
+      summary: Get user by ID
+      tags:
+      - users
+  /users/{id}/orders:
+    get:
+      description: Returns a list of orders associated with a specific user ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schema.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schema.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/schema.Response'
+      summary: Get all orders for a user
+      tags:
+      - orders
+  /users/create:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user with the provided details
+      parameters:
+      - description: User registration payload
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/schema.UserCreateDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schema.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schema.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schema.Response'
+      summary: Register a new user
+      tags:
+      - users
+  /users/update/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Updates user details for a given user ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated user data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/schema.UserUpdateDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/schema.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/schema.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/schema.Response'
+      summary: Update user details
+      tags:
+      - users
 schemes:
 - http
 securityDefinitions:
