@@ -27,16 +27,16 @@ go-intern-task/
 │   ├── config/        # Viper config
 │   ├── database/      # GORM models and DB connection
 │   ├──handlers/       # app routers
-|    ├── logger/        # Zap logger
+|   ├── logger/        # Zap logger
 │   ├──
 |   ├── middlewares/    # JWT and HTTP middlewares
 |                    ├──gin_middleware
-|                    ├──chi_middleware (mux also uses this middleware)
+|                    ├──chi_middleware (compatible with mux router)
 │   ├── models/        # DB models
 │   ├── repository/    # DB operations
-|    ├──schema          # app DTOs
+|   ├──schema          # app DTOs
 │   ├── services/      # Business logic
-|    ├──
+|   ├──
 │   └── utils/         # app helpers functions
 |
 │
@@ -105,18 +105,47 @@ jwt:
 
 ```
 
+## Migration configuration
+
+This Project uses goose library for migrating schema into the database
+I have created a makefile for shortening the goose commands
+
+- Creating migration file
+
+```
+make migrate-create name=migration_name
+```
+
+- Applying all pending migration to the database
+
+```
+make migrate-up
+```
+
+- Rollback Last applied migration
+
+```
+make migrate-down
+```
+
+- Current migration status
+
+```
+make migrate-status
+```
+
 ## Tradeoffs
 
 - During containerization, I faced an issue with using YAML-based configuration (Viper) alongside Docker Compose.
 
-The application reads all configuration values (including database credentials) from a .yml file using Viper. However, Docker Compose is designed to inject configuration more naturally through environment variables (via .env files). Unlike .env, YAML files cannot be directly imported or interpolated inside docker-compose.yml.
+  The application reads all configuration values (including database credentials) from a .yml file using Viper. However, Docker Compose is designed to inject configuration more naturally through environment variables (via .env files). Unlike .env, YAML files cannot be directly imported or interpolated inside docker-compose.yml.
 
-Because of this mismatch:
+  Because of this mismatch:
 
-Database credentials had to be hardcoded inside the YAML config
+  Database credentials had to be hardcoded inside the YAML config
 
-Docker Compose could not dynamically override these values
+  Docker Compose could not dynamically override these values
 
-This prevented a clean, production-ready Docker setup at the final stage
+  This prevented a clean, production-ready Docker setup at the final stage
 
-As a result, the project could not be fully dockerized in an ideal way within the given time.
+  As a result, the project could not be fully dockerized in an ideal way within the given time.
