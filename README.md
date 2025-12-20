@@ -105,6 +105,15 @@ jwt:
 
 ```
 
+### Project initialization
+
+```
+go mod tidy
+go run ./cmd/auth
+go run ./cmd/user
+go run ./cmd/order
+```
+
 ## Migration configuration
 
 This Project uses goose library for migrating schema into the database
