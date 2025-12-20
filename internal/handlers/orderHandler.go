@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	chimiddlewares "main/internal/middlewares/chi_middlewares"
 	"main/internal/schema"
 	"main/internal/services"
 	"main/internal/utils"
@@ -16,6 +17,7 @@ type OrderHandler interface {
 	GetUserOrders(w http.ResponseWriter, r *http.Request)
 	GetALLOrders(w http.ResponseWriter, r *http.Request)
 	CreateOrder(w http.ResponseWriter, r *http.Request)
+	UpdateOrderDetails(w http.ResponseWriter, r *http.Request)
 }
 
 type orderHandler struct {
@@ -41,27 +43,22 @@ func NewOrderHandler(orderService services.OrderService) OrderHandler {
 // @Failure      500    {object}  schema.Response
 // @Router       /orders [post]
 func (o *orderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
-	ctx:=r.Context()
+	ctx := r.Context()
 	var newOrder schema.CreateOrder
-	if err:=json.NewDecoder(r.Body).Decode(&newOrder);err!=nil{
-		resp:=utils.ErrBadRequest.WithDetails("Invalid email address or password")
-		w.Header().Set("Content-Type","application/json")
-		w.WriteHeader(resp.StatusCode)
-		json.NewEncoder(w).Encode(resp)
+	if err := json.NewDecoder(r.Body).Decode(&newOrder); err != nil {
+		chimiddlewares.SetError(w, utils.NewAppError(http.StatusBadRequest, "BAD_REQUEST", "Invalid Email address or password", nil))
 		return
 	}
 
-	if err:=o.orderService.CreateOrder(ctx,&newOrder);err!=nil{
-		resp := schema.ErrorResponse("INTERNAL_SERVER_ERR","Failed to create the order",err.Error())
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(resp)
+	order,err := o.orderService.CreateOrder(ctx, &newOrder);
+	
+	if err != nil {
+
+		chimiddlewares.SetError(w, utils.NewAppError(http.StatusInternalServerError, "INTERNAL_SERVER_ERR", "Failed to create the new order", nil))
 		return
 	}
-	response:=schema.SuccessResponse(nil,"Order created")
-	w.Header().Set("Content-Type","application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(&response)
+	response := schema.SuccessResponse(order, "Order created")
+	utils.JsonResponseWriter(w, http.StatusCreated, response)
 }
 
 // GetALLOrders godoc
@@ -73,22 +70,16 @@ func (o *orderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 // @Failure      404  {object}  schema.Response
 // @Router       /orders [get]
 func (o *orderHandler) GetALLOrders(w http.ResponseWriter, r *http.Request) {
-	ctx:=r.Context()
-	orderList,err:=o.orderService.GetOrders(ctx)
-	if err!=nil{
-		resp:=schema.ErrorResponse("NOT_FOUND","Order list is empty","")
-		w.Header().Set("Content-Type","application/json")
-		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(&resp)
+	ctx := r.Context()
+	orderList, err := o.orderService.GetOrders(ctx)
+	if err != nil {
+		chimiddlewares.SetError(w, utils.NewAppError(http.StatusNotFound, "ENTITY_NOT_FOUND", "No order details in the database", nil))
 		return
 	}
 
-	resp:=schema.SuccessResponse(orderList,"Order list")
-	w.Header().Set("Content-Type","application/json")	
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(resp)
+	resp := schema.SuccessResponse(orderList, "Order list")
+	utils.JsonResponseWriter(w, http.StatusOK, resp)
 }
-
 
 // GetOrder godoc
 // @Summary      Get order by ID
@@ -101,37 +92,26 @@ func (o *orderHandler) GetALLOrders(w http.ResponseWriter, r *http.Request) {
 // @Failure      404  {object}  schema.Response
 // @Router       /orders/{id} [get]
 func (o *orderHandler) GetOrder(w http.ResponseWriter, r *http.Request) {
-	ctx:=r.Context()
-	params:=mux.Vars(r)
-	idStr,ok:=params["id"]
-	if !ok{
-		resp:=schema.ErrorResponse("BAD_REQUEST","Order ID is missing","")
-		w.Header().Set("Content-Type","application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(&resp)
+	ctx := r.Context()
+	params := mux.Vars(r)
+	idStr, ok := params["id"]
+	if !ok {
+		chimiddlewares.SetError(w, utils.NewAppError(http.StatusBadRequest, "BAD_REQUEST", "Order ID is missing", nil))
 		return
 	}
-	id,err:=uuid.Parse(idStr)
-	if err!=nil{
-		resp:=schema.ErrorResponse("BAD_REQUEST","Invalid order ID","")
-		w.Header().Set("Content-Type","application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(&resp)
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		chimiddlewares.SetError(w, utils.NewAppError(http.StatusBadRequest, "BAD_REQUEST", "Invalid Order ID, it must be in UUID format", nil))
 		return
 	}
-	order,err:=o.orderService.GetOrder(ctx,id)
-	if err!=nil{
-		resp:=schema.ErrorResponse("NOT_FOUND","Order details not found","")
-		w.Header().Set("Content-Type","application/json")
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(&resp)
+	order, err := o.orderService.GetOrder(ctx, id)
+	if err != nil {
+		chimiddlewares.SetError(w, utils.NewAppError(http.StatusNotFound, "ENTITY_NOT_FOUND", "Order details not found", nil))
 		return
 	}
-	resp:=schema.SuccessResponse(order,"Order details")
-	w.Header().Set("Content-Type","application/json")
-	json.NewEncoder(w).Encode(&resp)
+	resp := schema.SuccessResponse(order, "Order details")
+	utils.JsonResponseWriter(w, http.StatusOK, resp)
 }
-
 
 // GetUserOrders godoc
 // @Summary      Get all orders for a user
@@ -144,32 +124,52 @@ func (o *orderHandler) GetOrder(w http.ResponseWriter, r *http.Request) {
 // @Failure      404  {object}  schema.Response
 // @Router       /users/{id}/orders [get]
 func (o *orderHandler) GetUserOrders(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	params := mux.Vars(r)
+	idStr, ok := params["id"]
+	if !ok {
+		chimiddlewares.SetError(w, utils.NewAppError(http.StatusBadRequest, "BAD_REQUEST", "Invalid User ID, it must be in UUID format", nil))
+		return
+	}
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		chimiddlewares.SetError(w, utils.NewAppError(http.StatusBadRequest, "BAD_REQUEST", "Invalid Order ID, it must be in UUID format", nil))
+		return
+	}
+	orderList, err := o.orderService.GetUserOrders(ctx, id)
+	if err != nil {
+		chimiddlewares.SetError(w, utils.NewAppError(http.StatusNotFound, "ENTITY_NOT_FOUND", "Order details not found with userID: "+idStr, nil))
+		return
+	}
+	resp := schema.SuccessResponse(orderList, "Order details associated with UserID: "+id.String())
+	utils.JsonResponseWriter(w, http.StatusOK, resp)
+}
+
+
+func (o *orderHandler) UpdateOrderDetails(w http.ResponseWriter, r *http.Request) {
 	ctx:=r.Context()
 	params:=mux.Vars(r)
 	idStr,ok:=params["id"]
-	if !ok{
-		resp:=schema.ErrorResponse("BAD_REQUEST","User ID is missing","")
-		w.Header().Set("Content-Type","application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(&resp)
+	if !ok {
+		chimiddlewares.SetError(w, utils.NewAppError(http.StatusBadRequest, "BAD_REQUEST", "Invalid User ID, it must be in UUID format", nil))
 		return
 	}
-	id,err:=uuid.Parse(idStr)
-	if err!=nil{
-		resp:=schema.ErrorResponse("BAD_REQUEST","Invalid order ID","")
-		w.Header().Set("Content-Type","application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(&resp)
-	}
-	orderList,err:=o.orderService.GetUserOrders(ctx,id)
-	if err!=nil{
-		resp:=schema.ErrorResponse("NOT_FOUND","Orders not found with userID","")
-		w.Header().Set("Content-Type","application/json")
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(&resp)
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		chimiddlewares.SetError(w, utils.NewAppError(http.StatusBadRequest, "BAD_REQUEST", "Invalid Order ID, it must be in UUID format", nil))
 		return
 	}
-	resp:=schema.SuccessResponse(orderList,"Order details associated with UserID: "+id.String())
-	w.Header().Set("Content-Type","application/json")
-	json.NewEncoder(w).Encode(&resp)
+	var orderDto *schema.OrderUpdate
+	if err:=json.NewDecoder(r.Body).Decode(&orderDto);err!=nil{
+		resp:=utils.NewAppError(http.StatusBadRequest,"BAD_REQUEST","Invalid order details",nil)
+		chimiddlewares.SetError(w,resp)
+		return
+	}
+	updatedOrder,err:=o.orderService.UpdateOrderDetails(ctx,id,orderDto)
+	if err!=nil{
+		resp:=utils.NewAppError(http.StatusBadRequest,"BAD_REQUEST","Failed to update order details with orderID: "+idStr,nil)
+		chimiddlewares.SetError(w,resp)
+		return
+	}
+	utils.JsonResponseWriter(w,http.StatusOK,updatedOrder)
 }
