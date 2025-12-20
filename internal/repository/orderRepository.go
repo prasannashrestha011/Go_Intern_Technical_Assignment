@@ -12,8 +12,8 @@ import (
 type OrderRepository interface {
 	Create(ctx context.Context, newOrder *models.Order)(*models.Order,error) 
 	Get(ctx context.Context, id uuid.UUID) (*models.Order, error)
-	GetUserOrders(ctx context.Context, userID uuid.UUID) ([]*models.Order, error)
-	GetAll(ctx context.Context) ([]*models.Order, error)
+	GetUserOrders(ctx context.Context, userID uuid.UUID,page int,pageSize int) ([]*models.Order, error)
+	GetAll(ctx context.Context,page int,pageSize int) ([]*models.Order, error)
 	Update(ctx context.Context, order *models.Order)(*models.Order,error) 
 }
 
@@ -44,9 +44,9 @@ func (o *orderRepository) Get(ctx context.Context, id uuid.UUID) (*models.Order,
 	return &fetched_order, nil
 }
 
-func (o *orderRepository) GetUserOrders(ctx context.Context, userID uuid.UUID) ([]*models.Order, error) {
+func (o *orderRepository) GetUserOrders(ctx context.Context, userID uuid.UUID,page int,pageSize int) ([]*models.Order, error) {
 	var user_orders []*models.Order
-	err := o.db.WithContext(ctx).Where("user_id= ?", userID).Find(&user_orders).Error
+	err := o.db.WithContext(ctx).Where("user_id= ?", userID).Limit(pageSize).Offset((page-1)*pageSize).Find(&user_orders).Error
 	if err != nil {
 		return nil, err
 	}
@@ -56,8 +56,8 @@ func (o *orderRepository) GetUserOrders(ctx context.Context, userID uuid.UUID) (
 	return user_orders, nil
 }
 
-func (o *orderRepository) GetAll(ctx context.Context) (orders []*models.Order, err error) {
-	err = o.db.WithContext(ctx).Find(&orders).Error
+func (o *orderRepository) GetAll(ctx context.Context,page int ,pageSize int) (orders []*models.Order, err error) {
+	err = o.db.WithContext(ctx).Limit(pageSize).Offset((page-1)*pageSize).Find(&orders).Error
 	if err != nil {
 		return nil, err
 	}

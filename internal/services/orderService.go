@@ -12,9 +12,9 @@ import (
 
 type OrderService interface {
 	CreateOrder(ctx context.Context, newOrder *schema.CreateOrder)(*schema.OrderResponse,error) 
-	GetOrders(ctx context.Context) ([]*schema.OrderResponse, error)
+	GetOrders(ctx context.Context,page int,pageSize int) ([]*schema.OrderResponse, error)
 	GetOrder(ctx context.Context, id uuid.UUID) (*schema.OrderResponse, error)
-	GetUserOrders(ctx context.Context, userID uuid.UUID) ([]*schema.UserOrderResponse, error)
+	GetUserOrders(ctx context.Context, userID uuid.UUID,page int,pageSize int) ([]*schema.UserOrderResponse, error)
 	UpdateOrderDetails(ctx context.Context,id uuid.UUID, order *schema.OrderUpdate)(*schema.OrderResponse,error)
 }
 
@@ -22,7 +22,6 @@ type orderService struct {
 	repo repository.OrderRepository
 }
 
-// UpdateOrderDetails implements [OrderService].
 
 func NewOrderService(repo repository.OrderRepository) OrderService {
 	return &orderService{
@@ -34,7 +33,9 @@ func (o *orderService) CreateOrder(ctx context.Context, newOrder *schema.CreateO
 	newOrderModel := &models.Order{
 		OrderName: newOrder.OrderName,
 		UserID:    newOrder.UserID,
-		Amount:    newOrder.Amount,
+		Quantity: newOrder.Quantity,
+		Price: newOrder.Price,
+		Amount:    newOrder.Price*float64(newOrder.Quantity),
 		Status:    "pending",
 	}
 
@@ -57,8 +58,8 @@ func (o *orderService) GetOrder(ctx context.Context, id uuid.UUID) (*schema.Orde
 	return orderDTO, nil
 }
 
-func (o *orderService) GetOrders(ctx context.Context) ([]*schema.OrderResponse, error) {
-	orders, err := o.repo.GetAll(ctx)
+func (o *orderService) GetOrders(ctx context.Context,page int, pageSize int) ([]*schema.OrderResponse, error) {
+	orders, err := o.repo.GetAll(ctx,page,pageSize)
 
 	if err != nil {
 		return nil, err
@@ -70,9 +71,10 @@ func (o *orderService) GetOrders(ctx context.Context) ([]*schema.OrderResponse, 
 	return ordersDTO, nil
 }
 
-func (o *orderService) GetUserOrders(ctx context.Context, userID uuid.UUID) ([]*schema.UserOrderResponse, error) {
+func (o *orderService) GetUserOrders(ctx context.Context, userID uuid.UUID,page int,pageSize int) ([]*schema.UserOrderResponse, error) {
 
-	userOrders, err := o.repo.GetUserOrders(ctx, userID)
+
+	userOrders, err := o.repo.GetUserOrders(ctx, userID,page,pageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -93,9 +95,14 @@ func (o *orderService) UpdateOrderDetails(
 	if updateDto.OrderName != nil {
 	existing.OrderName = *updateDto.OrderName
 	}
-	if updateDto.Amount != nil {
-		existing.Amount = *updateDto.Amount
+	if updateDto.Price != nil {
+		existing.Price = *updateDto.Price
 	}
+	if updateDto.Quantity !=nil{
+		existing.Quantity = *updateDto.Quantity
+	}
+
+	existing.Amount=existing.Price*float64(existing.Quantity);
 	if updateDto.Status != nil {
 		existing.Status = *updateDto.Status
 	}

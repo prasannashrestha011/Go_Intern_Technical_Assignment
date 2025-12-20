@@ -71,7 +71,9 @@ func (o *orderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 // @Router       /orders [get]
 func (o *orderHandler) GetALLOrders(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	orderList, err := o.orderService.GetOrders(ctx)
+	page,pageSize:=utils.ParsePaginationValues(r,1,10)
+
+	orderList, err := o.orderService.GetOrders(ctx,page,pageSize)
 	if err != nil {
 		chimiddlewares.SetError(w, utils.NewAppError(http.StatusNotFound, "ENTITY_NOT_FOUND", "No order details in the database", nil))
 		return
@@ -127,6 +129,7 @@ func (o *orderHandler) GetUserOrders(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	params := mux.Vars(r)
 	idStr, ok := params["id"]
+	page,pageSize:=utils.ParsePaginationValues(r,1,10)
 	if !ok {
 		chimiddlewares.SetError(w, utils.NewAppError(http.StatusBadRequest, "BAD_REQUEST", "Invalid User ID, it must be in UUID format", nil))
 		return
@@ -136,7 +139,7 @@ func (o *orderHandler) GetUserOrders(w http.ResponseWriter, r *http.Request) {
 		chimiddlewares.SetError(w, utils.NewAppError(http.StatusBadRequest, "BAD_REQUEST", "Invalid Order ID, it must be in UUID format", nil))
 		return
 	}
-	orderList, err := o.orderService.GetUserOrders(ctx, id)
+	orderList, err := o.orderService.GetUserOrders(ctx, id,page,pageSize)
 	if err != nil {
 		chimiddlewares.SetError(w, utils.NewAppError(http.StatusNotFound, "ENTITY_NOT_FOUND", "Order details not found with userID: "+idStr, nil))
 		return
