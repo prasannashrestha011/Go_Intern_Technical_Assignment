@@ -47,6 +47,7 @@ func main() {
 	r.Use(chimiddlewares.LoggerMiddleware)
 	r.Use(chimiddlewares.ErrorMiddleware)
 
+	r.Use(chimiddlewares.RateLimit(0.5,10))
 	r.Post("/create",userHandlers.REGISTER_USER)
 	r.Route("/users",func(r chi.Router) {
 		r.Use(chimiddlewares.JWTAuthMiddleware)

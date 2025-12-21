@@ -45,8 +45,10 @@ func main() {
 
 	r := mux.NewRouter()
 
+	r.Use(chimiddlewares.RateLimit(0.5,10))
 	r.Use(chimiddlewares.ErrorMiddleware)
 	r.Use(chimiddlewares.JWTAuthMiddleware)
+	
 	
 	r.HandleFunc("/orders",handler.GetALLOrders).Methods("GET")
 	r.HandleFunc("/orders",handler.CreateOrder).Methods("POST")

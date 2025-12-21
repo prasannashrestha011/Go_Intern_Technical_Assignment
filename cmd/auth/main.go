@@ -58,6 +58,7 @@ func main() {
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	auth:=r.Group("/auth")
+	auth.Use(ginmiddlewares.RateLimit(0.5,10))
 	auth.Use(ginmiddlewares.ErrorMiddleware())
 	auth.POST("/login",authHandler.Login)
 	auth.POST("/refresh",authHandler.Refresh)
@@ -65,6 +66,8 @@ func main() {
 	//protected routes
 	auth.Use(ginmiddlewares.GinJWTMiddleware())
 	{
+
+		auth.Use(ginmiddlewares.RateLimit(2,10))
 		auth.GET("/profile",authHandler.Profile)
 		auth.GET("/validate",authHandler.Validate)
 	}
