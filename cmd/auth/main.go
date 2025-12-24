@@ -15,6 +15,7 @@ package main
 // @host localhost:8080
 
 import (
+	"context"
 	"main/internal/config"
 	"main/internal/database"
 	"main/internal/handlers"
@@ -77,6 +78,8 @@ func main() {
 		auth.GET("/validate",authHandler.Validate)
 	}
 
+	ctx:=context.Background()
+	go utils.EmailWorker(ctx)
 	port:=config.AppCfgs.Server.Port.Auth
 
 	r.Run(":"+port)

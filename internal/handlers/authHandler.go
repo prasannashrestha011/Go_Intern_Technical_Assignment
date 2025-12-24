@@ -11,7 +11,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/resend/resend-go/v2"
 	"go.uber.org/zap"
 )
 
@@ -130,26 +129,19 @@ func (a *authHandler) VerifyEmail(ctx *gin.Context){
 		_=ctx.Error(resp)
 		return
 	}
-	
-	email_req_details:=&resend.SendEmailRequest{
+
+	job_data:=&utils.EmailJob{
+		To: reqCreds.Email,
 		From: config.AppCfgs.Resend.AppDomain,
-		To: []string{reqCreds.Email},
-		Subject: "Verification Code",
-		Html: `
+		Subj:"Account verification successfully",
+		Body: `
 		<p>We are pleased to inform you that your email address has been successfully verified.</p>
         <p>You can now access all the features of your account.</p>
         <p>Thank you for joining us!</p>
 			<p style="font-size: 12px; color: #888;">Need help? Contact our support team at support@example.com</p>
-		` ,
-
+		`,
 	}
-	isSent,message,err:=utils.SendEmail(email_req_details)
-	if err!=nil && !isSent{
-		resp:=utils.NewAppError(http.StatusInternalServerError,"INTERNAL_SERVER_ERR",message,nil)
-		_=ctx.Error(resp)
-		return
-	}
-	
+	utils.EnqueueEmail(ctx,job_data)
 	ctx.JSON(http.StatusOK,schema.SuccessResponse(nil,message))
 }
 
