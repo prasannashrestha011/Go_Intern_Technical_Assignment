@@ -58,11 +58,13 @@ func (u *userService) RegisterUser(ctx context.Context,dto *schema.UserCreateDTO
 		Name:     dto.Name,
 		Email:    dto.Email,
 		Password:hashedPwd,
+		IsVerified: false,
 	}
 	err = u.repo.Create(ctx,user)
 	if err != nil {
 		return nil, err
 	}
+	
 	userDTO := utils.ToUserResponseDTO(user)
 	return userDTO, nil
 }
