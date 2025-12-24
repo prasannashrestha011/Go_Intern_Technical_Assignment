@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"main/internal/config"
 	"main/internal/logger"
 	"main/internal/schema"
 	"main/internal/services"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/resend/resend-go/v2"
 	"go.uber.org/zap"
 )
 
@@ -17,6 +19,7 @@ type AuthHandler interface {
 	Login(ctx *gin.Context)
 	Refresh(ctx *gin.Context)
 	Validate(ctx *gin.Context)
+	VerifyEmail(ctx *gin.Context)
 	//test handlers
 	Profile(ctx *gin.Context)
 }
@@ -26,7 +29,7 @@ type authHandler struct {
 }
 
 func NewAuthHandler(authService services.AuthService) AuthHandler {
-	return &authHandler{authService: authService}
+	return &authHandler{authService: authService }
 }
 
 // Login godoc
@@ -103,6 +106,7 @@ func (a *authHandler) Refresh(ctx *gin.Context) {
 	newAccessToken,_,err:=utils.GenerateTokens(uuid.MustParse(userIDStr))
 	if err!=nil{
 		_=ctx.Error(utils.NewAppError(500,"TOKEN_GEN_FAILTURE","Failed to refresh access token",nil))
+		return
 	}
 	logger.Log.Info("Refresh token generated: ",zap.String("userID",userIDStr),zap.Time("time",time.Now()))
 	responseData := map[string]string{
@@ -111,6 +115,44 @@ func (a *authHandler) Refresh(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK,schema.SuccessResponse(responseData,"Access token has been refreshed"))
 
 }
+
+func (a *authHandler) VerifyEmail(ctx *gin.Context){
+	var reqCreds *schema.VerifyEmailRequest
+	if err:=ctx.BindJSON(&reqCreds);err!=nil{
+		resp:=utils.NewAppError(http.StatusBadRequest,"BAD_REQUEST","Request body is invalid, ensure email and verification code are valid",nil)
+		_=ctx.Error(resp)
+		return
+	}
+	isVerified,message,_:=a.authService.VerifyEmail(ctx,reqCreds)
+	
+	if !isVerified{
+		resp:=utils.NewAppError(http.StatusUnauthorized,"REQ_UNAUTHORIZED",message,nil)
+		_=ctx.Error(resp)
+		return
+	}
+	
+	email_req_details:=&resend.SendEmailRequest{
+		From: config.AppCfgs.Resend.AppDomain,
+		To: []string{reqCreds.Email},
+		Subject: "Verification Code",
+		Html: `
+		<p>We are pleased to inform you that your email address has been successfully verified.</p>
+        <p>You can now access all the features of your account.</p>
+        <p>Thank you for joining us!</p>
+			<p style="font-size: 12px; color: #888;">Need help? Contact our support team at support@example.com</p>
+		` ,
+
+	}
+	isSent,message,err:=utils.SendEmail(email_req_details)
+	if err!=nil && !isSent{
+		resp:=utils.NewAppError(http.StatusInternalServerError,"INTERNAL_SERVER_ERR",message,nil)
+		_=ctx.Error(resp)
+		return
+	}
+	
+	ctx.JSON(http.StatusOK,schema.SuccessResponse(nil,message))
+}
+
 //Access Token Validation godoc
 //@Summary Checks if current access token is valid.
 //@Descrition This handlers validate wheather current session is active or expired. The handler is protected with JWT middleware. So, middleware will set userID in request context only if given access token is valid.
@@ -134,6 +176,7 @@ func (a *authHandler) Validate(ctx *gin.Context) {
 	}
 	ctx.JSON(http.StatusOK,schema.SuccessResponse(response,"Token is valid"))
 }
+
 
 /*
 	Test handlers to test jwt route protection
