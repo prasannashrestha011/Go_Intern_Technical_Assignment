@@ -12,7 +12,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/resend/resend-go/v2"
 )
 
 type UserService interface {
@@ -139,11 +138,11 @@ func (u *userHandler) REGISTER_USER(w http.ResponseWriter, r *http.Request) {
 		chimiddlewares.SetError(w,resp)
 		return
 	}
-	email_req_details:=&resend.SendEmailRequest{
+	job_data:=&utils.EmailJob{
+		To: user_details.Email,
 		From: config.AppCfgs.Resend.AppDomain,
-		To: []string{user_details.Email},
-		Subject: "Verification Code",
-		Html: fmt.Sprintf(`
+		Subj: "Account verification code",
+		Body: fmt.Sprintf(`
 			<h2>Email Verification</h2>
 			<p>Hi %s,</p>
 			<p>Thank you for registering. Please use the verification code below to complete your registration:</p>
@@ -153,14 +152,8 @@ func (u *userHandler) REGISTER_USER(w http.ResponseWriter, r *http.Request) {
 			<hr>
 			<p style="font-size: 12px; color: #888;">Need help? Contact our support team at support@example.com</p>
 		`, user_details.Name, code),
-
 	}
-	isSent,message,err:=utils.SendEmail(email_req_details)
-	if err!=nil && !isSent{
-		resp:=utils.NewAppError(http.StatusInternalServerError,"INTERNAL_SERVER_ERR",message,nil)
-		chimiddlewares.SetError(w,resp)
-		return
-	}
+	utils.EnqueueEmail(ctx,job_data)
 	resp:=schema.SuccessResponse(nil,"Verification code has been sent to "+user_details.Email)
 	utils.JsonResponseWriter(w,http.StatusOK,resp)
 }
