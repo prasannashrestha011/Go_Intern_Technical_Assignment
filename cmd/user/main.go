@@ -14,6 +14,7 @@ package main
 
 // @host localhost:8081
 import (
+	"context"
 	"log"
 	_ "main/cmd/user/docs"
 	"main/internal/config"
@@ -78,7 +79,8 @@ func main() {
 		httpSwagger.URL("http://localhost:"+port+"/swagger/doc.json"), // URL pointing to generated swagger.json
 	))
 
-
+	ctx:=context.Background()
+	go utils.EmailWorker(ctx)
 	log.Println("SERVER listening on PORT: "+port)
 	http.ListenAndServe(":"+port,r)
 }
