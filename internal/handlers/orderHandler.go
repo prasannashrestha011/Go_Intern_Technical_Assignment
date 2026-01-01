@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"main/internal/config/protoc"
 	chimiddlewares "main/internal/middlewares/chi_middlewares"
 	"main/internal/schema"
 	"main/internal/services"
@@ -22,12 +23,13 @@ type OrderHandler interface {
 
 type orderHandler struct {
 	orderService services.OrderService
+	userClient   protoc.UserMicroServiceClient
 }
 
-
-func NewOrderHandler(orderService services.OrderService) OrderHandler {
+func NewOrderHandler(orderService services.OrderService, userClient protoc.UserMicroServiceClient) OrderHandler {
 	return &orderHandler{
 		orderService: orderService,
+		userClient:   userClient,
 	}
 }
 
@@ -50,8 +52,8 @@ func (o *orderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	order,err := o.orderService.CreateOrder(ctx, &newOrder);
-	
+	order, err := o.orderService.CreateOrder(ctx, &newOrder)
+
 	if err != nil {
 
 		chimiddlewares.SetError(w, utils.NewAppError(http.StatusInternalServerError, "INTERNAL_SERVER_ERR", "Failed to create the new order", nil))
@@ -71,9 +73,9 @@ func (o *orderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 // @Router       /orders [get]
 func (o *orderHandler) GetALLOrders(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	page,pageSize:=utils.ParsePaginationValues(r,1,10)
+	page, pageSize := utils.ParsePaginationValues(r, 1, 10)
 
-	orderList, err := o.orderService.GetOrders(ctx,page,pageSize)
+	orderList, err := o.orderService.GetOrders(ctx, page, pageSize)
 	if err != nil {
 		chimiddlewares.SetError(w, utils.NewAppError(http.StatusNotFound, "ENTITY_NOT_FOUND", "No order details in the database", nil))
 		return
@@ -111,7 +113,16 @@ func (o *orderHandler) GetOrder(w http.ResponseWriter, r *http.Request) {
 		chimiddlewares.SetError(w, utils.NewAppError(http.StatusNotFound, "ENTITY_NOT_FOUND", "Order details not found", nil))
 		return
 	}
-	resp := schema.SuccessResponse(order, "Order details")
+	customer_details, err := o.userClient.GetUser(ctx, &protoc.UserMicroRequest{UserId: order.UserID.String()})
+	if err != nil {
+		chimiddlewares.SetError(w, utils.NewAppError(http.StatusNotFound, "ENTITY_NOT_FOUND", "Customer details not found", nil))
+		return
+	}
+	final_details := map[string]interface{}{
+		"order":    order,
+		"customer": customer_details,
+	}
+	resp := schema.SuccessResponse(final_details, "Order details")
 	utils.JsonResponseWriter(w, http.StatusOK, resp)
 }
 
@@ -129,7 +140,7 @@ func (o *orderHandler) GetUserOrders(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	params := mux.Vars(r)
 	idStr, ok := params["id"]
-	page,pageSize:=utils.ParsePaginationValues(r,1,10)
+	page, pageSize := utils.ParsePaginationValues(r, 1, 10)
 	if !ok {
 		chimiddlewares.SetError(w, utils.NewAppError(http.StatusBadRequest, "BAD_REQUEST", "Invalid User ID, it must be in UUID format", nil))
 		return
@@ -139,7 +150,7 @@ func (o *orderHandler) GetUserOrders(w http.ResponseWriter, r *http.Request) {
 		chimiddlewares.SetError(w, utils.NewAppError(http.StatusBadRequest, "BAD_REQUEST", "Invalid Order ID, it must be in UUID format", nil))
 		return
 	}
-	orderList, err := o.orderService.GetUserOrders(ctx, id,page,pageSize)
+	orderList, err := o.orderService.GetUserOrders(ctx, id, page, pageSize)
 	if err != nil {
 		chimiddlewares.SetError(w, utils.NewAppError(http.StatusNotFound, "ENTITY_NOT_FOUND", "Order details not found with userID: "+idStr, nil))
 		return
@@ -162,9 +173,9 @@ func (o *orderHandler) GetUserOrders(w http.ResponseWriter, r *http.Request) {
 // @Failure      500    {object}  schema.ErrorResponseSchema   "Internal server error"
 // @Router       /orders/{id} [put]
 func (o *orderHandler) UpdateOrderDetails(w http.ResponseWriter, r *http.Request) {
-	ctx:=r.Context()
-	params:=mux.Vars(r)
-	idStr,ok:=params["id"]
+	ctx := r.Context()
+	params := mux.Vars(r)
+	idStr, ok := params["id"]
 	if !ok {
 		chimiddlewares.SetError(w, utils.NewAppError(http.StatusBadRequest, "BAD_REQUEST", "Invalid User ID, it must be in UUID format", nil))
 		return
@@ -175,16 +186,16 @@ func (o *orderHandler) UpdateOrderDetails(w http.ResponseWriter, r *http.Request
 		return
 	}
 	var orderDto *schema.OrderUpdate
-	if err:=json.NewDecoder(r.Body).Decode(&orderDto);err!=nil{
-		resp:=utils.NewAppError(http.StatusBadRequest,"BAD_REQUEST","Invalid order details",nil)
-		chimiddlewares.SetError(w,resp)
+	if err := json.NewDecoder(r.Body).Decode(&orderDto); err != nil {
+		resp := utils.NewAppError(http.StatusBadRequest, "BAD_REQUEST", "Invalid order details", nil)
+		chimiddlewares.SetError(w, resp)
 		return
 	}
-	updatedOrder,err:=o.orderService.UpdateOrderDetails(ctx,id,orderDto)
-	if err!=nil{
-		resp:=utils.NewAppError(http.StatusBadRequest,"BAD_REQUEST","Failed to update order details with orderID: "+idStr,nil)
-		chimiddlewares.SetError(w,resp)
+	updatedOrder, err := o.orderService.UpdateOrderDetails(ctx, id, orderDto)
+	if err != nil {
+		resp := utils.NewAppError(http.StatusBadRequest, "BAD_REQUEST", "Failed to update order details with orderID: "+idStr, nil)
+		chimiddlewares.SetError(w, resp)
 		return
 	}
-	utils.JsonResponseWriter(w,http.StatusOK,updatedOrder)
+	utils.JsonResponseWriter(w, http.StatusOK, updatedOrder)
 }

@@ -1,0 +1,20 @@
+syntax= "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+option go_package="./internal/config/protoc";
+
+service UserMicroService{
+    rpc GetUser(UserMicroRequest) returns (UserMicroResponse);
+}
+
+message UserMicroRequest{
+    string user_id=1;
+}
+
+message UserMicroResponse{
+    string name=1;
+    string email=2;
+    bool is_verified=3;
+    google.protobuf.Timestamp created_at=4;
+}
