@@ -2,6 +2,11 @@
 
 A mini User & Order Management API built in Go demonstrating multiple HTTP routers, JWT authentication, PostgreSQL integration, simple concurrency, and clean architecture.
 
+## Graphana
+
+![Alt text](/assets/graphana.png)
+
+
 ## Objective
 
 The goal of this project is to showcase backend development skills in Go, including:
