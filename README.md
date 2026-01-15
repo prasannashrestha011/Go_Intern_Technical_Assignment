@@ -2,6 +2,16 @@
 
 A mini User & Order Management API built in Go demonstrating multiple HTTP routers, JWT authentication, PostgreSQL integration, simple concurrency, and clean architecture.
 
+
+
+**Lumberjack** -> Collects logs from the console and stores them in /logs/app.log.
+
+**Promtail** -> Watches the app.log file for new log entries and pushes updates whenever the file changes.
+
+**Loki** -> Stores the logs and makes the data available to Grafana.
+
+**Grafana** -> Uses Loki as a datasource to fetch the log data and visualize it in its web UI.
+
 ## Graphana
 
 ![Alt text](/assets/graphana.png)
